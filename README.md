@@ -2,12 +2,6 @@
 
 A Go desktop app that converts a decimal number to an 8-digit hexadecimal value. It was built for RFID tag UIDs: paste the decimal UID from a reader to get the hex value.
 
-Current version: **1.0.0**. The window shows the version, the author, and a link to this repository. To stamp a different number onto a build:
-
-```powershell
-go build -ldflags="-H windowsgui -X main.appVersion=1.0.0" -o decToHexConv.exe
-```
-
 ## Description
 
 The window has two fields:
