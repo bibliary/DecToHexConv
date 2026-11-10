@@ -9,12 +9,16 @@ import (
 	"image"
 	"image/color"
 	"image/png"
+	"net/url"
 	"strconv"
 	"strings"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
+	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/driver/desktop"
+	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
 )
 
@@ -23,13 +27,20 @@ var iconICO []byte
 
 const historyLimit = 5
 
+// appVersion is the release number shown in the window.
+// Override it for a build with -ldflags "-X main.appVersion=1.0.0".
+var (
+	appVersion = "1.0.0"
+	appAuthor  = "bibliary"
+	appRepo    = "https://github.com/bibliary/DecToHexConv"
+)
+
 func main() {
 	myApp := app.New()
 	if icon := embeddedIcon(); icon != nil {
 		myApp.SetIcon(icon)
 	}
 	myWindow := myApp.NewWindow("DecToHexConv (8 digits)")
-	myWindow.Resize(fyne.NewSize(350, 360))
 	myWindow.CenterOnScreen()
 
 	decimalEntry := widget.NewEntry()
@@ -117,7 +128,12 @@ func main() {
 		ignoreDecimalChange = false
 	}
 
-	content := container.NewVBox(
+	repoURL, _ := url.Parse(appRepo)
+	versionText := canvas.NewText("v"+appVersion+"  ·  "+appAuthor, theme.ForegroundColor())
+	versionText.Alignment = fyne.TextAlignCenter
+	versionText.TextSize = theme.TextSize()
+
+	body := container.NewVBox(
 		widget.NewLabel("Decimal number:"),
 		decimalEntry,
 		widget.NewLabel("Hexadecimal number:"),
@@ -125,10 +141,99 @@ func main() {
 		widget.NewLabel("Recent conversions:"),
 		historyLabel,
 	)
-
-	myWindow.SetContent(container.NewPadded(content))
+	footer := container.NewVBox(
+		widget.NewSeparator(),
+		container.New(tightVBox{}, versionText, newRepoLink(repoURL)),
+	)
+	// The center spacer keeps the footer on the bottom edge while the
+	// history list above it grows into the reserved space.
+	padded := container.NewPadded(container.NewBorder(body, footer, nil, nil, container.NewMax()))
+	historyLabel.SetText(strings.TrimRight(strings.Repeat("2455999035 -> 9263923B\n", historyLimit), "\n"))
+	myWindow.SetContent(padded)
+	myWindow.Resize(fyne.NewSize(350, padded.MinSize().Height))
+	historyLabel.SetText("No conversions yet")
 	myWindow.ShowAndRun()
 }
+
+// tightVBox stacks objects with no gap between them.
+type tightVBox struct{}
+
+func (tightVBox) MinSize(objects []fyne.CanvasObject) fyne.Size {
+	var width, height float32
+	for _, object := range objects {
+		if object == nil || !object.Visible() {
+			continue
+		}
+		size := object.MinSize()
+		width = fyne.Max(width, size.Width)
+		height += size.Height
+	}
+	return fyne.NewSize(width, height)
+}
+
+func (tightVBox) Layout(objects []fyne.CanvasObject, size fyne.Size) {
+	y := float32(0)
+	for _, object := range objects {
+		if object == nil || !object.Visible() {
+			continue
+		}
+		height := object.MinSize().Height
+		object.Resize(fyne.NewSize(size.Width, height))
+		object.Move(fyne.NewPos(0, y))
+		y += height
+	}
+}
+
+// repoLink is a text-sized GitHub link, without the extra padding of a hyperlink widget.
+type repoLink struct {
+	widget.BaseWidget
+	url *url.URL
+}
+
+func newRepoLink(target *url.URL) *repoLink {
+	link := &repoLink{url: target}
+	link.ExtendBaseWidget(link)
+	return link
+}
+
+func (l *repoLink) Tapped(*fyne.PointEvent) {
+	_ = fyne.CurrentApp().OpenURL(l.url)
+}
+
+func (l *repoLink) Cursor() desktop.Cursor {
+	return desktop.PointerCursor
+}
+
+func (l *repoLink) CreateRenderer() fyne.WidgetRenderer {
+	text := canvas.NewText("GitHub", theme.HyperlinkColor())
+	text.Alignment = fyne.TextAlignCenter
+	text.TextSize = theme.TextSize()
+	return &repoLinkRenderer{text: text}
+}
+
+type repoLinkRenderer struct {
+	text *canvas.Text
+}
+
+func (r *repoLinkRenderer) Layout(size fyne.Size) {
+	r.text.Resize(size)
+}
+
+func (r *repoLinkRenderer) MinSize() fyne.Size {
+	return r.text.MinSize()
+}
+
+func (r *repoLinkRenderer) Refresh() {
+	r.text.Color = theme.HyperlinkColor()
+	r.text.TextSize = theme.TextSize()
+	r.text.Refresh()
+}
+
+func (r *repoLinkRenderer) Objects() []fyne.CanvasObject {
+	return []fyne.CanvasObject{r.text}
+}
+
+func (r *repoLinkRenderer) Destroy() {}
 
 // decimalToHex8 converts a decimal string to exactly 8 uppercase hex digits.
 // Negative values keep a leading minus. Values outside the unsigned 32-bit
