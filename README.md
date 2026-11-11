@@ -9,7 +9,7 @@ The window has two fields:
 - **Decimal number:** type a decimal value. The hexadecimal field updates as you type.
 - **Hexadecimal number:** shows the result. Press Enter to keep that result, clear the decimal field, and add the conversion to the list below.
 
-The list keeps the last 5 conversions, newest first.
+The list keeps the last 5 conversions, newest first. Those lines can be selected and copied.
 
 ## Requirements
 
@@ -111,7 +111,7 @@ On Linux, install the usual Fyne system packages (`gcc`, and the X11/OpenGL deve
 
 1. Start the app.
 2. Type a decimal number. The hexadecimal field updates while you type.
-3. Press Enter. The hexadecimal value stays, the decimal field is cleared, and the conversion is added under **Recent conversions**.
+3. Press Enter. The hexadecimal value stays, the decimal field is cleared, and the conversion is added under **Recent conversions**. Select that text and copy it with Ctrl+C.
 4. Positive numbers are formatted as 8 uppercase hex digits. Negative numbers keep a leading minus.
 5. Values that do not fit in 8 hex digits show an error and are not added to the history.
 

@@ -28,9 +28,9 @@ var iconICO []byte
 const historyLimit = 5
 
 // appVersion is the release number shown in the window.
-// Override it for a build with -ldflags "-X main.appVersion=1.0.0".
+// Override it for a build with -ldflags "-X main.appVersion=1.0.1".
 var (
-	appVersion = "1.0.0"
+	appVersion = "1.0.1"
 	appAuthor  = "bibliary"
 	appRepo    = "https://github.com/bibliary/DecToHexConv"
 )
@@ -68,8 +68,19 @@ func main() {
 	}
 
 	history := make([]string, 0, historyLimit)
-	historyLabel := widget.NewLabel("No conversions yet")
-	historyLabel.TextStyle = fyne.TextStyle{Monospace: true}
+	// An entry can be selected and copied. OnChanged puts the previous
+	// value back, so the list cannot be edited.
+	var historyText string
+	historyEntry := widget.NewMultiLineEntry()
+	historyEntry.SetPlaceHolder("No conversions yet")
+	historyEntry.TextStyle = fyne.TextStyle{Monospace: true}
+	historyEntry.Wrapping = fyne.TextWrapOff
+	historyEntry.Scroll = container.ScrollNone
+	historyEntry.OnChanged = func(text string) {
+		if text != historyText {
+			historyEntry.SetText(historyText)
+		}
+	}
 
 	pushHistory := func(decimal, hex string) {
 		line := decimal + " -> " + hex
@@ -77,7 +88,8 @@ func main() {
 		if len(history) > historyLimit {
 			history = history[:historyLimit]
 		}
-		historyLabel.SetText(strings.Join(history, "\n"))
+		historyText = strings.Join(history, "\n")
+		historyEntry.SetText(historyText)
 	}
 
 	// Set while the decimal field is cleared after a successful conversion.
@@ -139,7 +151,7 @@ func main() {
 		widget.NewLabel("Hexadecimal number:"),
 		hexEntry,
 		widget.NewLabel("Recent conversions:"),
-		historyLabel,
+		historyEntry,
 	)
 	footer := container.NewVBox(
 		widget.NewSeparator(),
@@ -148,10 +160,12 @@ func main() {
 	// The center spacer keeps the footer on the bottom edge while the
 	// history list above it grows into the reserved space.
 	padded := container.NewPadded(container.NewBorder(body, footer, nil, nil, container.NewMax()))
-	historyLabel.SetText(strings.TrimRight(strings.Repeat("2455999035 -> 9263923B\n", historyLimit), "\n"))
+	historyText = strings.TrimRight(strings.Repeat("2455999035 -> 9263923B\n", historyLimit), "\n")
+	historyEntry.SetText(historyText)
 	myWindow.SetContent(padded)
 	myWindow.Resize(fyne.NewSize(350, padded.MinSize().Height))
-	historyLabel.SetText("No conversions yet")
+	historyText = ""
+	historyEntry.SetText("")
 	myWindow.ShowAndRun()
 }
 
